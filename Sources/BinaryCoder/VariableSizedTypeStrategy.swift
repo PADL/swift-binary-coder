@@ -7,6 +7,8 @@ public enum VariableSizedTypeStrategy {
     /// Allows encoding of arbitrary many variable-sized types, this might
     /// however make decoding (with this library) impossible.
     case untaggedAndAmbiguous
+    /// Tags arrays with 16-bit lengths; data is encoded untagged
+    case lengthTaggedArrays
 
     // TODO: Investigate how a tagged strategy could be implemented.
     // E.g. recursive structures could be handled by tagging each
@@ -15,14 +17,16 @@ public enum VariableSizedTypeStrategy {
 
     var allowsRecursiveTypes: Bool {
         switch self {
-        case .untaggedAndAmbiguous: return true
+        case .untaggedAndAmbiguous,
+                .lengthTaggedArrays: return true
         default: return false
         }
     }
 
     var allowsOptionalTypes: Bool {
         switch self {
-        case .untaggedAndAmbiguous: return true
+        case .untaggedAndAmbiguous,
+                .lengthTaggedArrays: return true
         default: return false
         }
     }
@@ -30,14 +34,16 @@ public enum VariableSizedTypeStrategy {
     var allowsSingleVariableSizedType: Bool {
         switch self {
         case .untagged,
-             .untaggedAndAmbiguous: return true
+             .untaggedAndAmbiguous,
+             .lengthTaggedArrays: return true
         default: return false
         }
     }
 
     var allowsValuesAfterVariableSizedTypes: Bool {
         switch self {
-        case .untaggedAndAmbiguous: return true
+        case .untaggedAndAmbiguous,
+                .lengthTaggedArrays: return true
         default: return false
         }
     }

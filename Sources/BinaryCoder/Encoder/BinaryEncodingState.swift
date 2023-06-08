@@ -33,17 +33,21 @@ class BinaryEncodingState {
     func encode(_ value: String) throws {
         try ensureNotAfterVariableSizedType()
 
-        let isVariableSizedType = !config.nullTerminateStrings
+        let isVariableSizedType = config.stringTypeStrategy == .none
         if isVariableSizedType {
-            try ensureVariableSizedTypeAllowed()
+            try ensureVariableSizedTypeAllowed(value)
         }
 
         guard let encoded = value.data(using: .utf8) else {
             throw BinaryEncodingError.stringNotEncodable(value)
         }
-
+        
+        if config.stringTypeStrategy == .lengthTagged {
+            let length = UInt16(value.count)
+            try encodeInteger(length)
+        }
         data += encoded
-        if config.nullTerminateStrings {
+        if config.stringTypeStrategy == .nullTerminate {
             data.append(0)
         }
 
@@ -106,15 +110,24 @@ class BinaryEncodingState {
 
     func encode<T>(_ value: T, codingPath: [any CodingKey]) throws where T: Encodable {
         try ensureNotAfterVariableSizedType()
-
-        let isVariableSizedType = value is [Any] || value is Data
+        
+        var isVariableSizedType = value is [Any] || value is Data
         if isVariableSizedType {
-            try ensureVariableSizedTypeAllowed()
+            try ensureVariableSizedTypeAllowed(value)
         }
 
         switch value {
         case let data as Data:
             self.data += data
+        case let array as [Encodable]:
+            if config.variableSizedTypeStrategy == .lengthTaggedArrays {
+                if array.count > UInt16.max {
+                    throw BinaryEncodingError.variableSizedTypeTooBig
+                }
+                try encodeInteger(UInt16(array.count))
+                isVariableSizedType = false
+            }
+            fallthrough
         default:
             try withCodingTypePath(appending: [String(describing: type(of: value))]) {
                 try value.encode(to: BinaryEncoderImpl(state: self, codingPath: codingPath))
@@ -133,9 +146,10 @@ class BinaryEncodingState {
         codingTypePath.removeLast(delta.count)
     }
 
-    private func ensureVariableSizedTypeAllowed() throws {
+    private func ensureVariableSizedTypeAllowed(_ value: any Encodable) throws {
         let strategy = config.variableSizedTypeStrategy
-        guard strategy.allowsSingleVariableSizedType else {
+        guard strategy.allowsSingleVariableSizedType ||
+            value is [Any] && strategy == .lengthTaggedArrays else {
             throw BinaryEncodingError.variableSizedTypeDisallowed
         }
     }

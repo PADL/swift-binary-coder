@@ -7,4 +7,5 @@ public enum BinaryEncodingError: Error, Hashable {
     case recursiveTypeDisallowed
     case optionalTypeDisallowed
     case valueAfterVariableSizedTypeDisallowed
+    case variableSizedTypeTooBig
 }

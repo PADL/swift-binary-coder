@@ -19,7 +19,7 @@ struct KeyedBinaryDecodingContainer<Key>: KeyedDecodingContainerProtocol where K
     }
 
     func nestedUnkeyedContainer(forKey key: Key) throws -> any UnkeyedDecodingContainer {
-        UnkeyedBinaryDecodingContainer(state: state, codingPath: codingPath)
+        UnkeyedBinaryDecodingContainer(state: state, codingPath: codingPath, count: nil)
     }
 
     func superDecoder() throws -> any Decoder {

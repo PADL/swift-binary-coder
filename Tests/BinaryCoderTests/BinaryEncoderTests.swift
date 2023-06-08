@@ -60,6 +60,44 @@ final class BinaryEncoderTests: XCTestCase {
         try assertThat(encoder, encodes: Recursive(value: 3, recursive: .init(value: 4)), to: [3, 4])
         try assertThat(encoder, encodes: Mutual.A(b: .init(a: .init(b: .init(value: 4)), value: 2)), to: [4, 2])
     }
+    
+    func testLengthTaggedBinaryEncoder() throws {
+        let encoder = BinaryEncoder(config: .init(
+            endianness: .bigEndian,
+            stringEncoding: .utf8,
+            stringTypeStrategy: .lengthTagged,
+            variableSizedTypeStrategy: .lengthTaggedArrays)
+        )
+        
+        // single length tagged data
+        try assertThat(encoder, encodes: LengthTaggedData([0xff, 0x01, 0x02]), to: [0x00, 0x03, 0xff, 0x01, 0x02])
+        
+        struct Foo: Codable {
+            var a, b: LengthTaggedData
+        }
+
+        // double length tagged data
+        try assertThat(encoder, encodes: Foo(a: LengthTaggedData([0x01, 0x02]),
+                                             b: LengthTaggedData([0x03, 0x04])),
+                       to: [0x00, 0x02, 0x01, 0x02, 0x00, 0x02, 0x03, 0x04])
+
+        // length tagged data followed by UInt8
+        try assertThat(encoder, encodes: Generic(value: LengthTaggedData([0x01, 0x02]),
+                                             additional: 3),
+                       to: [0x00, 0x02, 0x01, 0x02, 0x03])
+
+        // length tagged string
+        try assertThat(encoder, encodes: "abc", to: [0, 3, 97, 98, 99])
+               
+        // length tagged string followed by something else
+        try assertThat(encoder, encodes: Generic(value: "abc", additional: 3), to: [0, 3, 97, 98, 99, 3])
+
+        // length tagged array of UInt16
+        try assertThat(encoder, encodes: [UInt16(1), UInt16(2)], to: [0, 2, 0, 1, 0, 2])
+        
+        // length tagged array of string
+        try assertThat(encoder, encodes: ["a", "b"], to: [0, 2, 0, 1, 97, 0, 1, 98])
+    }
 
     private func assertThat<Value>(
         _ encoder: BinaryEncoder,

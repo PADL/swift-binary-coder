@@ -6,7 +6,7 @@ public struct BinaryCodingConfiguration {
     let stringEncoding: String.Encoding
     /// Whether to add a NUL byte to encoded strings. This makes them exempt
     /// from the variable length rules since they are properly delimited.
-    let nullTerminateStrings: Bool
+    let stringTypeStrategy: StringTypeStrategy
     /// The strategy used for variable-sized types.
     let variableSizedTypeStrategy: VariableSizedTypeStrategy
 
@@ -16,9 +16,21 @@ public struct BinaryCodingConfiguration {
         nullTerminateStrings: Bool = true,
         variableSizedTypeStrategy: VariableSizedTypeStrategy = .untagged
     ) {
+        self.init(endianness: endianness,
+                  stringEncoding: stringEncoding,
+                  stringTypeStrategy: nullTerminateStrings ? .nullTerminate : .none,
+                  variableSizedTypeStrategy: variableSizedTypeStrategy)
+    }
+    
+    public init(
+        endianness: Endianness,
+        stringEncoding: String.Encoding,
+        stringTypeStrategy: StringTypeStrategy,
+        variableSizedTypeStrategy: VariableSizedTypeStrategy
+    ) {
         self.endianness = endianness
         self.stringEncoding = stringEncoding
-        self.nullTerminateStrings = nullTerminateStrings
+        self.stringTypeStrategy = stringTypeStrategy
         self.variableSizedTypeStrategy = variableSizedTypeStrategy
     }
 }

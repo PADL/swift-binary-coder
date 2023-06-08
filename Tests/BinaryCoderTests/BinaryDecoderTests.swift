@@ -40,6 +40,42 @@ final class BinaryDecoderTests: XCTestCase {
         try assertThat(decoder, decodes: [97, 98, 99], to: "abc")
         try assertThat(decoder, whileDecoding: Generic<String>.self, from: [97, 98, 99, 4], throws: .eofTooEarly)
     }
+    
+    func testLengthTaggedBinaryDecoder() throws {
+        let decoder = BinaryDecoder(config: .init(
+            endianness: .bigEndian,
+            stringEncoding: .utf8,
+            stringTypeStrategy: .lengthTagged,
+            variableSizedTypeStrategy: .lengthTaggedArrays)
+        )
+
+        // single length tagged data
+        try assertThat(decoder, decodes: [0x00, 0x03, 0xff, 0x01, 0x02], to: LengthTaggedData([0xff, 0x01, 0x02]))
+
+        struct Foo: Codable, Equatable {
+            var a, b: LengthTaggedData
+        }
+
+        // double length tagged data
+        try assertThat(decoder, decodes: [0x00, 0x02, 0x01, 0x02, 0x00, 0x02, 0x03, 0x04],
+                       to: Foo(a: LengthTaggedData([0x01, 0x02]),
+                               b: LengthTaggedData([0x03, 0x04])))
+        // length tagged data followed by UInt8
+        try assertThat(decoder, decodes: [0x00, 0x02, 0x01, 0x02, 0x03],
+                       to: Generic(value: LengthTaggedData([0x01, 0x02]), additional: 3))
+
+        // length tagged string
+        try assertThat(decoder, decodes: [0, 3, 97, 98, 99], to: "abc")
+
+        // length tagged string followed by something else
+        try assertThat(decoder, decodes: [0, 3, 97, 98, 99, 3], to: Generic(value: "abc", additional: 3))
+
+        // length tagged array of UInt16
+        try assertThat(decoder, decodes: [0, 2, 0, 1, 0, 2], to: [UInt16(1), UInt16(2)])
+        
+        // length tagged array of string
+        try assertThat(decoder, decodes: [0, 2, 0, 1, 97, 0, 1, 98], to: ["a", "b"])
+    }
 
     private func assertThat<Value>(
         _ decoder: BinaryDecoder,

@@ -5,11 +5,12 @@ struct UnkeyedBinaryDecodingContainer: UnkeyedDecodingContainer {
     private(set) var currentIndex: Int = 0
 
     var isAtEnd: Bool { state.isAtEnd }
-    var count: Int? { nil }
+    var count: Int?
 
-    init(state: BinaryDecodingState, codingPath: [any CodingKey]) {
+    init(state: BinaryDecodingState, codingPath: [any CodingKey], count: Int?) {
         self.state = state
         self.codingPath = codingPath
+        self.count = count
     }
 
     mutating func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey> where NestedKey: CodingKey {
@@ -17,7 +18,7 @@ struct UnkeyedBinaryDecodingContainer: UnkeyedDecodingContainer {
     }
 
     mutating func nestedUnkeyedContainer() throws -> any UnkeyedDecodingContainer {
-        UnkeyedBinaryDecodingContainer(state: state, codingPath: codingPath)
+        UnkeyedBinaryDecodingContainer(state: state, codingPath: codingPath, count: nil)
     }
 
     mutating func superDecoder() throws -> any Decoder {

@@ -26,7 +26,8 @@ class BinaryDecodingState {
 
     func decode(_ type: String.Type) throws -> String {
         var raw = Data()
-        if config.nullTerminateStrings {
+        switch config.stringTypeStrategy {
+        case .nullTerminate:
             while true {
                 guard let byte = data.popFirst() else {
                     throw BinaryDecodingError.eofTooEarly
@@ -36,10 +37,21 @@ class BinaryDecodingState {
                 }
                 raw.append(byte)
             }
-        } else {
+            break
+        case .lengthTagged:
+            // TODO: deal with actual number of Unicode code points
+            let length = Int(try decodeInteger(UInt16.self))
+            raw.append(data.prefix(length))
+            guard raw.count == length else {
+                throw BinaryDecodingError.eofTooEarly
+            }
+            data.removeFirst(length)
+            break
+        default:
             while let byte = data.popFirst() {
                 raw.append(byte)
             }
+            break
         }
         guard let value = String(data: raw, encoding: config.stringEncoding) else {
             throw BinaryDecodingError.stringNotDecodable(raw)
@@ -111,6 +123,11 @@ class BinaryDecodingState {
     }
 
     func decode<T>(_ type: T.Type, codingPath: [any CodingKey]) throws -> T where T: Decodable {
-        try T(from: BinaryDecoderImpl(state: self, codingPath: codingPath))
+        var count: Int? = nil
+        if type is any ArrayRepresentable.Type, config.variableSizedTypeStrategy == .lengthTaggedArrays {
+            // propagate array count to unkeyed container count
+            count = try Int(UInt16(from: BinaryDecoderImpl(state: self, codingPath: [])))
+        }
+        return try T(from: BinaryDecoderImpl(state: self, codingPath: codingPath, count: count))
     }
 }
