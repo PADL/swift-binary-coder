@@ -97,6 +97,10 @@ final class BinaryEncoderTests: XCTestCase {
         
         // length tagged array of string
         try assertThat(encoder, encodes: ["a", "b"], to: [0, 2, 0, 1, 97, 0, 1, 98])
+        
+        // length tagged array of length tagged array
+        try assertThat(encoder, encodes: [[UInt16(1), UInt16(3)], [UInt16(9), UInt16(2)], [UInt16(7)]],
+                       to: [0, 3, 0, 2, 0, 1, 0, 3, 0, 2, 0, 9, 0, 2, 0, 1, 0, 7])
     }
 
     private func assertThat<Value>(

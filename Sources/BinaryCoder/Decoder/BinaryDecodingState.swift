@@ -125,7 +125,6 @@ class BinaryDecodingState {
     func decode<T>(_ type: T.Type, codingPath: [any CodingKey]) throws -> T where T: Decodable {
         var count: Int? = nil
         if type is any ArrayRepresentable.Type, config.variableSizedTypeStrategy == .lengthTaggedArrays {
-            // propagate array count to unkeyed container count
             count = try Int(UInt16(from: BinaryDecoderImpl(state: self, codingPath: [])))
         }
         return try T(from: BinaryDecoderImpl(state: self, codingPath: codingPath, count: count))

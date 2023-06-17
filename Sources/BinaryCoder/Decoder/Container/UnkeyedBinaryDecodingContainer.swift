@@ -4,7 +4,13 @@ struct UnkeyedBinaryDecodingContainer: UnkeyedDecodingContainer {
 
     private(set) var currentIndex: Int = 0
 
-    var isAtEnd: Bool { state.isAtEnd }
+    var isAtEnd: Bool {
+        if let count {
+            return currentIndex == count
+        } else {
+            return state.isAtEnd
+        }
+    }
     var count: Int?
 
     init(state: BinaryDecodingState, codingPath: [any CodingKey], count: Int?) {
